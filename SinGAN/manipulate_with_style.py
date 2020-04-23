@@ -165,7 +165,10 @@ def modify_input_to_generator(z_in, cont_in, modification, opacity=0.7):
         z_in = np.concatenate((z_in, np.full(shape=(z_in.shape[0], z_in.shape[1], 1), fill_value=255.0)), axis=2)
         cont_in = np.concatenate((cont_in, np.full(shape=(cont_in.shape[0], cont_in.shape[1], 1), fill_value=255.0)), axis=2)
         # blend - we can play with types of blends, and which image is the background and which is the foreground - only the forground (second image) is manipulated
-        modified_image = blend_modes.soft_light(z_in, cont_in, opacity)[:, :, :-1]
+        #modified_image = blend_modes.soft_light(z_in, cont_in, opacity)[:, :, :-1]
+        #modified_image = blend_modes.grain_merge(z_in, cont_in, opacity)[:, :, :-1]
+        #modified_image = blend_modes.darken_only(z_in, cont_in, opacity)[:, :, :-1]
+        modified_image = blend_modes.hard_light(z_in, cont_in, opacity)[:, :, :-1]
     return modified_image
 
 
