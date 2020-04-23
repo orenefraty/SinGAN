@@ -16,6 +16,8 @@ if __name__ == '__main__':
     parser.add_argument('--scale_h', type=float, help='horizontal resize factor for random samples', default=1.5)
     parser.add_argument('--scale_v', type=float, help='vertical resize factor for random samples', default=1)
     parser.add_argument('--modification', help='none | blend', default='none')
+    parser.add_argument('--ref_dir', help='input reference dir', default='Input/Content')
+    parser.add_argument('--ref_name', help='reference image name', required=False)
     opt = parser.parse_args()
     opt = functions.post_config(opt)
     Gs = []
@@ -28,7 +30,7 @@ if __name__ == '__main__':
     Gs, Zs, reals, NoiseAmp = functions.load_trained_pyramid(opt)
     in_s = functions.generate_in2coarsest(reals,1,1,opt)
     modification = opt.modification
-    SinGAN_generate(Gs, Zs, reals, NoiseAmp, opt, gen_start_scale=opt.gen_start_scale, modification)
+    SinGAN_generate(Gs, Zs, reals, NoiseAmp, opt, modification, gen_start_scale=opt.gen_start_scale)
 
 
 

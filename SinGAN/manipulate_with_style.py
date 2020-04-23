@@ -5,6 +5,7 @@ import argparse
 import os
 import random
 from SinGAN.imresize import imresize
+from SinGAN.imresize import imresize_to_shape
 import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data
@@ -19,6 +20,7 @@ import imageio
 import matplotlib.pyplot as plt
 from SinGAN.training import *
 from config import get_arguments
+import blend_modes
 
 def generate_gif(Gs,Zs,reals,NoiseAmp,opt,alpha=0.1,beta=0.9,start_scale=2,fps=10):
 
@@ -86,8 +88,9 @@ def generate_gif(Gs,Zs,reals,NoiseAmp,opt,alpha=0.1,beta=0.9,start_scale=2,fps=1
     imageio.mimsave('%s/start_scale=%d/alpha=%f_beta=%f.gif' % (dir2save,start_scale,alpha,beta),images_cur,fps=fps)
     del images_cur
 
-def SinGAN_generate(Gs, Zs, reals, NoiseAmp, opt, in_s=None, scale_v=1, scale_h=1, n=0, gen_start_scale=0, num_samples=50,
-                    stylize=None):
+
+def SinGAN_generate(Gs, Zs, reals, NoiseAmp, opt, modification=None, in_s=None, scale_v=1, scale_h=1, n=0,
+                    gen_start_scale=0, num_samples=50):
     #start_scale = here we manipulate the image
     #func stylize
 
@@ -133,8 +136,9 @@ def SinGAN_generate(Gs, Zs, reals, NoiseAmp, opt, in_s=None, scale_v=1, scale_h=
                 z_curr = Z_opt
 
             z_in = noise_amp*(z_curr)+I_prev
-            if n == gen_start_scale:
-                z_in = stylize(z_in)
+            if (n == gen_start_scale) & (modification is not None):
+                cont_in = preprocess_content_image(opt, reals)
+                z_in = modify_input_to_generator(z_in, cont_in, modification)
             I_curr = G(z_in.detach(),I_prev)
 
             if n == len(reals)-1:
@@ -153,4 +157,32 @@ def SinGAN_generate(Gs, Zs, reals, NoiseAmp, opt, in_s=None, scale_v=1, scale_h=
             images_cur.append(I_curr)
         n+=1
     return I_curr.detach()
+
+
+def modify_input_to_generator(z_in, cont_in, modification, opacity=0.7):
+    if modification == 'blend':
+        # convert RGB images to RGBA, with alpha value of 255
+        z_in = np.concatenate((z_in, np.full(shape=(z_in.shape[0], z_in.shape[1], 1), fill_value=255.0)), axis=2)
+        cont_in = np.concatenate((cont_in, np.full(shape=(cont_in.shape[0], cont_in.shape[1], 1), fill_value=255.0)), axis=2)
+        # blend - we can play with types of blends, and which image is the background and which is the foreground - only the forground (second image) is manipulated
+        modified_image = blend_modes.soft_light(z_in, cont_in, opacity)[:, :, :-1]
+    return modified_image
+
+
+def preprocess_content_image(opt, reals):
+    real = functions.read_image(opt)
+    functions.adjust_scales2image(real, opt)
+    ref = functions.read_image_dir('%s/%s' % (opt.ref_dir, opt.ref_name), opt)
+    if ref.shape[3] != real.shape[3]:
+        ref = imresize_to_shape(ref, [real.shape[2], real.shape[3]], opt)
+        ref = ref[:, :, :real.shape[2], :real.shape[3]]
+
+    N = len(reals) - 1
+    n = opt.paint_start_scale
+    in_s = imresize(ref, pow(opt.scale_factor, (N - n + 1)), opt)
+    in_s = in_s[:, :, :reals[n - 1].shape[2], :reals[n - 1].shape[3]]
+    in_s = imresize(in_s, 1 / opt.scale_factor, opt)
+    in_s = in_s[:, :, :reals[n].shape[2], :reals[n].shape[3]]
+
+    return in_s
 
