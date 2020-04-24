@@ -1,24 +1,11 @@
 from __future__ import print_function
-import SinGAN.functions
-import SinGAN.models
-import argparse
-import os
-import random
-from SinGAN.imresize import imresize
-import torch.nn as nn
-import torch.optim as optim
-import torch.utils.data
-import torchvision.datasets as dset
-import torchvision.transforms as transforms
-import torchvision.utils as vutils
-from skimage import io as img
-import numpy as np
-from skimage import color
-import math
+
 import imageio
-import matplotlib.pyplot as plt
+import numpy as np
+import torch.utils.data
+
 from SinGAN.training import *
-from config import get_arguments
+
 
 def generate_gif(Gs,Zs,reals,NoiseAmp,opt,alpha=0.1,beta=0.9,start_scale=2,fps=10):
 

@@ -1,5 +1,6 @@
+from ImageModifiers.CannyKeepColors import canny_keep_colors
 from config import get_arguments
-from SinGAN.manipulate import *
+from SinGAN.manipulate_preprocess import *
 from SinGAN.training import *
 from SinGAN.imresize import imresize
 import SinGAN.functions as functions
@@ -9,7 +10,7 @@ if __name__ == '__main__':
     parser = get_arguments()
     parser.add_argument('--input_dir', help='input image dir', default='Input/Images')
     parser.add_argument('--input_name', help='input image name', required=True)
-    parser.add_argument('--mode', help='random_samples | random_samples_arbitrary_sizes', default='train', required=True)
+    parser.add_argument('--mode', help='random_samples | random_samples_arbitrary_sizes', default='train')
     # for random_samples:
     parser.add_argument('--gen_start_scale', type=int, help='generation start scale', default=0)
     # for random_samples_arbitrary_sizes:
