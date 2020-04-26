@@ -171,13 +171,14 @@ def SinGAN_generate(Gs, Zs, reals, NoiseAmp, opt, modification=None, in_s=None, 
     return I_curr.detach()
 
 
-from skimage.color import rgb2gray
+from skimage.color import rgb2gray,rgba2rgb
 from skimage import data
 import math
 from skimage.transform import resize
 
 def modify_input_to_generator(z_in, cont_in, modification, opacity=0.7):
     cuda_device = cont_in.device
+    modified_image= None
     if cont_in.device.type == 'cuda':
         cont_in = cont_in.cpu()
         z_in = z_in.cpu()
@@ -221,17 +222,18 @@ def modify_input_to_generator(z_in, cont_in, modification, opacity=0.7):
         # modified_image = blend_modes.darken_only(z_in, cont_in, opacity)[:, :, :-1]
         #modified_image = blend_modes.hard_light(z_in, cont_in, opacity)[:, :, :-1]
     if modification == 'canny_color':
-        z_in = np.hstack((z_in, np.ones(shape=[1, 1, z_in.shape[2], z_in.shape[3]]) * 255))
         cont_in_img = np.transpose(cont_in[0, :, :, :], (1, 2, 0))
         cont_in_gs = rgb2gray(cont_in_img.numpy())
-        edges = feature.canny(cont_in_gs)
-        edges = edges[np.newaxis, np.newaxis, ...]
+        edges_bw = feature.canny(cont_in_gs)
+        edges = edges_bw[np.newaxis, np.newaxis, ...]
         cont_in = np.hstack((cont_in, edges))
-        z_in = np.transpose(z_in[0, :, :, :], (1, 2, 0))
         cont_in = np.transpose(cont_in[0, :, :, :], (1, 2, 0))
-        cont_in = resize(cont_in, (z_in.shape[0] , z_in.shape[1]), anti_aliasing=True)
-        # replace the edges in the content images
-        modified_image = blend_modes.hard_light(z_in, cont_in, opacity)[:, :, :-1]
+        cont_in = resize(cont_in, (z_in.shape[2] , z_in.shape[3],4), anti_aliasing=True)
+        alpha = cont_in[:,:,3]!=0
+        cont_in = rgba2rgb(cont_in)
+        mask =np.transpose(np.tile(alpha, (3,1,1)),(1,2,0))
+        z_in_rgb = np.transpose(z_in[0,:,:,:],(1,2,0))
+        modified_image = np.where(mask,cont_in,z_in_rgb)
         modified_image = np.transpose(modified_image, (2, 0, 1))
         modified_image = modified_image[np.newaxis, ...]
         modified_image = torch.from_numpy(modified_image).float().to(cuda_device)
