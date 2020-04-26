@@ -17,8 +17,6 @@ def generate_gif(Gs,Zs,reals,NoiseAmp,opt,alpha=0.1,beta=0.9,start_scale=2,fps=1
         pad_image = int(((opt.ker_size - 1) * opt.num_layer) / 2)
         nzx = Z_opt.shape[2]
         nzy = Z_opt.shape[3]
-        #pad_noise = 0
-        #m_noise = nn.ZeroPad2d(int(pad_noise))
         m_image = nn.ZeroPad2d(int(pad_image))
         images_prev = images_cur
         images_cur = []
@@ -49,7 +47,6 @@ def generate_gif(Gs,Zs,reals,NoiseAmp,opt,alpha=0.1,beta=0.9,start_scale=2,fps=1
                 I_prev = images_prev[i]
                 I_prev = imresize(I_prev, 1 / opt.scale_factor, opt)
                 I_prev = I_prev[:, :, 0:real.shape[2], 0:real.shape[3]]
-                #I_prev = functions.upsampling(I_prev,reals[count].shape[2],reals[count].shape[3])
                 I_prev = m_image(I_prev)
             if count < start_scale:
                 z_curr = Z_opt
@@ -74,7 +71,6 @@ def generate_gif(Gs,Zs,reals,NoiseAmp,opt,alpha=0.1,beta=0.9,start_scale=2,fps=1
     del images_cur
 
 def SinGAN_generate(Gs,Zs,reals,NoiseAmp,opt,in_s=None,scale_v=1,scale_h=1,n=0,gen_start_scale=0,num_samples=50):
-    #if torch.is_tensor(in_s) == False:
     if in_s is None:
         in_s = torch.full(reals[0].shape, 0, device=opt.device)
     images_cur = []
@@ -98,9 +94,6 @@ def SinGAN_generate(Gs,Zs,reals,NoiseAmp,opt,in_s=None,scale_v=1,scale_h=1,n=0,g
 
             if images_prev == []:
                 I_prev = m(in_s)
-                #I_prev = m(I_prev)
-                #I_prev = I_prev[:,:,0:z_curr.shape[2],0:z_curr.shape[3]]
-                #I_prev = functions.upsampling(I_prev,z_curr.shape[2],z_curr.shape[3])
             else:
                 I_prev = images_prev[i]
                 I_prev = imresize(I_prev,1/opt.scale_factor, opt)
@@ -114,6 +107,9 @@ def SinGAN_generate(Gs,Zs,reals,NoiseAmp,opt,in_s=None,scale_v=1,scale_h=1,n=0,g
 
             if n < gen_start_scale:
                 z_curr = Z_opt
+
+            print(z_curr.shape)
+            print(I_prev.shape)
 
             z_in = noise_amp*(z_curr)+I_prev
             I_curr = G(z_in.detach(),I_prev)
@@ -129,8 +125,6 @@ def SinGAN_generate(Gs,Zs,reals,NoiseAmp,opt,in_s=None,scale_v=1,scale_h=1,n=0,g
                     pass
                 if (opt.mode != "harmonization") & (opt.mode != "editing") & (opt.mode != "SR") & (opt.mode != "paint2image"):
                     plt.imsave('%s/%d.png' % (dir2save, i), functions.convert_image_np(I_curr.detach()), vmin=0,vmax=1)
-                    #plt.imsave('%s/%d_%d.png' % (dir2save,i,n),functions.convert_image_np(I_curr.detach()), vmin=0, vmax=1)
-                    #plt.imsave('%s/in_s.png' % (dir2save), functions.convert_image_np(in_s), vmin=0,vmax=1)
             images_cur.append(I_curr)
         n+=1
     return I_curr.detach()

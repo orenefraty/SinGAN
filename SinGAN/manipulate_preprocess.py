@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 from SinGAN.training import *
 from config import get_arguments
 import blend_modes
+import SinGAN.functions as functions
 
 
 def generate_gif(Gs, Zs, reals, NoiseAmp, opt, alpha=0.1, beta=0.9, start_scale=2, fps=10):
@@ -138,11 +139,16 @@ def SinGAN_generate(Gs, Zs, reals, NoiseAmp, opt, modification=None, in_s=None, 
                 z_curr = Z_opt
 
             z_in = noise_amp * (z_curr) + I_prev
+            # image modification TODO
+            dir2save = '%s/RandomSamples/%s/gen_start_scale=%d' % (opt.out, opt.input_name[:-4], gen_start_scale)
+            plt.imsave('%s/%d_before_modification.png' % (dir2save, i), functions.convert_image_np(z_in.detach()), vmin=0,vmax=1)
             if (n >= gen_start_scale) & (modification is not None):
                 shape = z_in.shape
                 cont_in = preprocess_content_image(opt, reals)
                 z_in = modify_input_to_generator(z_in, cont_in, modification, opacity=1)
                 assert shape == z_in.shape
+            plt.imsave('%s/%d_after_modification.png' % (dir2save, i), functions.convert_image_np(z_in.detach()), vmin=0,vmax=1)
+
             I_curr = G(z_in.detach(), I_prev)
 
             if n == len(reals) - 1:
@@ -176,15 +182,44 @@ def modify_input_to_generator(z_in, cont_in, modification, opacity=0.7):
         cont_in = cont_in.cpu()
         z_in = z_in.cpu()
     if modification == 'blend':
+        z_in = np.hstack((z_in, np.ones(shape=[1, 1, z_in.shape[2], z_in.shape[3]]) * 255))
+        cont_in = np.hstack((cont_in, np.ones(shape=[1, 1, cont_in.shape[2], cont_in.shape[3]]) * 255))
+
+        #cont_in_img = np.transpose(cont_in[0, :, :, :], (1, 2, 0))
+        #cont_in_gs = rgb2gray(cont_in_img.numpy())
+        #edges = feature.canny(cont_in_gs)
+        #edges = edges[np.newaxis, np.newaxis, ...]
+        #cont_in = np.hstack((cont_in, edges))
+        z_in = np.transpose(z_in[0, :, :, :], (1, 2, 0))
+        cont_in = np.transpose(cont_in[0, :, :, :], (1, 2, 0))
+        cont_in = resize(cont_in, (z_in.shape[0] , z_in.shape[1]), anti_aliasing=True)
+        # replace the edges in the content images
+        modified_image = blend_modes.hard_light(z_in, cont_in, opacity)[:, :, :-1]
+
+        modified_image = np.transpose(modified_image, (2, 0, 1))
+        modified_image = modified_image[np.newaxis, ...]
+        modified_image = torch.from_numpy(modified_image).float().to(cuda_device)
+
+        #z_in = np.hstack((z_in, np.ones(shape=[1, 1, z_in.shape[2], z_in.shape[3]]) * 255))
+        #cont_in_img = np.transpose(cont_in[0, :, :, :], (1, 2, 0))
+        #cont_in_gs = rgb2gray(cont_in_img.numpy())
+        #edges = feature.canny(cont_in_gs)
+        #edges = edges[np.newaxis, np.newaxis, ...]
+        #cont_in = np.hstack((cont_in, edges))
+        #z_in = np.transpose(z_in[0, :, :, :], (1, 2, 0))
+        #cont_in = np.transpose(cont_in[0, :, :, :], (1, 2, 0))
+        #cont_in = resize(cont_in, (z_in.shape[0] , z_in.shape[1]), anti_aliasing=True)
         # convert RGB images to RGBA, with alpha value of 255
-        z_in = np.concatenate((z_in, np.full(shape=(z_in.shape[0], z_in.shape[1], 1), fill_value=255.0)), axis=2)
-        cont_in = np.concatenate((cont_in, np.full(shape=(cont_in.shape[0], cont_in.shape[1], 1), fill_value=255.0)),
-                                 axis=2)
+        #z_in = np.concatenate((z_in, np.full(shape=(z_in.shape[0], z_in.shape[1], 1), fill_value=255.0)), axis=2)
+        #z_in = np.hstack((z_in, np.ones(shape=(z_in.shape[0], z_in.shape[1], 1)) * 255))
+        #cont_in = np.concatenate((cont_in, np.full(shape=(cont_in.shape[0], cont_in.shape[1], 1), fill_value=255.0)),axis=2)
+        #cont_in = np.hstack((cont_in, np.ones(shape=(cont_in.shape[0], cont_in.shape[1], 1)) * 255))
+
         # blend - we can play with types of blends, and which image is the background and which is the foreground - only the forground (second image) is manipulated
         # modified_image = blend_modes.soft_light(z_in, cont_in, opacity)[:, :, :-1]
         # modified_image = blend_modes.grain_merge(z_in, cont_in, opacity)[:, :, :-1]
         # modified_image = blend_modes.darken_only(z_in, cont_in, opacity)[:, :, :-1]
-        modified_image = blend_modes.hard_light(z_in, cont_in, opacity)[:, :, :-1]
+        #modified_image = blend_modes.hard_light(z_in, cont_in, opacity)[:, :, :-1]
     if modification == 'canny_color':
         z_in = np.hstack((z_in, np.ones(shape=[1, 1, z_in.shape[2], z_in.shape[3]]) * 255))
         cont_in_img = np.transpose(cont_in[0, :, :, :], (1, 2, 0))

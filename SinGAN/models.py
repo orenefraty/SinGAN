@@ -38,13 +38,12 @@ class WDiscriminator(nn.Module):
         x = self.tail(x)
         return x
 
-
 class GeneratorConcatSkip2CleanAdd(nn.Module):
     def __init__(self, opt):
         super(GeneratorConcatSkip2CleanAdd, self).__init__()
         self.is_cuda = torch.cuda.is_available()
         N = opt.nfc
-        self.head = ConvBlock(opt.nc_im,N,opt.ker_size,opt.padd_size,1) #GenConvTransBlock(opt.nc_z,N,opt.ker_size,opt.padd_size,opt.stride)
+        self.head = ConvBlock(opt.nc_im,N,opt.ker_size,opt.padd_size,1)
         self.body = nn.Sequential()
         for i in range(opt.num_layer-2):
             N = int(opt.nfc/pow(2,(i+1)))

@@ -7,13 +7,10 @@ import scipy.io as sio
 import math
 from skimage import io as img
 from skimage import color, morphology, filters
-#from skimage import morphology
-#from skimage import filters
 from SinGAN.imresize import imresize
 import os
 import random
 from sklearn.cluster import KMeans
-
 
 # custom weights initialization called on netG and netD
 
@@ -29,15 +26,6 @@ def norm(x):
     out = (x -0.5) *2
     return out.clamp(-1, 1)
 
-#def denorm2image(I1,I2):
-#    out = (I1-I1.mean())/(I1.max()-I1.min())
-#    out = out*(I2.max()-I2.min())+I2.mean()
-#    return out#.clamp(I2.min(), I2.max())
-
-#def norm2image(I1,I2):
-#    out = (I1-I2.mean())*2
-#    return out#.clamp(I2.min(), I2.max())
-
 def convert_image_np(inp):
     if inp.shape[1]==3:
         inp = denorm(inp)
@@ -47,8 +35,6 @@ def convert_image_np(inp):
         inp = denorm(inp)
         inp = move_to_cpu(inp[-1,-1,:,:])
         inp = inp.numpy().transpose((0,1))
-        # mean = np.array([x/255.0 for x in [125.3,123.0,113.9]])
-        # std = np.array([x/255.0 for x in [63.0,62.1,66.7]])
 
     inp = np.clip(inp,0,1)
     return inp
@@ -58,7 +44,6 @@ def save_image(real_cpu,receptive_feild,ncs,epoch_num,file_name):
     if ncs==1:
         ax.imshow(real_cpu.view(real_cpu.size(2),real_cpu.size(3)),cmap='gray')
     else:
-        #ax.imshow(convert_image_np(real_cpu[0,:,:,:].cpu()))
         ax.imshow(convert_image_np(real_cpu.cpu()))
     rect = patches.Rectangle((0,0),receptive_feild,receptive_feild,linewidth=5,edgecolor='r',facecolor='none')
     ax.add_patch(rect)
@@ -69,9 +54,6 @@ def save_image(real_cpu,receptive_feild,ncs,epoch_num,file_name):
 def convert_image_np_2d(inp):
     inp = denorm(inp)
     inp = inp.numpy()
-    # mean = np.array([x/255.0 for x in [125.3,123.0,113.9]])
-    # std = np.array([x/255.0 for x in [63.0,62.1,66.7]])
-    # inp = std*
     return inp
 
 def generate_noise(size,num_samp=1,device='cuda',type='gaussian', scale=1):
@@ -90,8 +72,6 @@ def plot_learning_curves(G_loss,D_loss,epochs,label1,label2,name):
     fig,ax = plt.subplots(1)
     n = np.arange(0,epochs)
     plt.plot(n,G_loss,n,D_loss)
-    #plt.title('loss')
-    #plt.ylabel('loss')
     plt.xlabel('epochs')
     plt.legend([label1,label2],loc='upper right')
     plt.savefig('%s.png' % name)
@@ -125,24 +105,21 @@ def move_to_cpu(t):
     return t
 
 def calc_gradient_penalty(netD, real_data, fake_data, LAMBDA, device):
-    #print real_data.size()
     alpha = torch.rand(1, 1)
     alpha = alpha.expand(real_data.size())
-    alpha = alpha.to(device)#cuda() #gpu) #if use_cuda else alpha
+    alpha = alpha.to(device)
 
     interpolates = alpha * real_data + ((1 - alpha) * fake_data)
 
 
-    interpolates = interpolates.to(device)#.cuda()
+    interpolates = interpolates.to(device)
     interpolates = torch.autograd.Variable(interpolates, requires_grad=True)
 
     disc_interpolates = netD(interpolates)
 
     gradients = torch.autograd.grad(outputs=disc_interpolates, inputs=interpolates,
-                              grad_outputs=torch.ones(disc_interpolates.size()).to(device),#.cuda(), #if use_cuda else torch.ones(
-                                  #disc_interpolates.size()),
+                              grad_outputs=torch.ones(disc_interpolates.size()).to(device),
                               create_graph=True, retain_graph=True, only_inputs=True)[0]
-    #LAMBDA = 1
     gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean() * LAMBDA
     return gradient_penalty
 
@@ -170,7 +147,6 @@ def np2torch(x,opt):
     if not(opt.not_cuda):
         x = move_to_gpu(x)
     x = x.type(torch.cuda.FloatTensor) if not(opt.not_cuda) else x.type(torch.FloatTensor)
-    #x = x.type(torch.FloatTensor)
     x = norm(x)
     return x
 
@@ -193,13 +169,11 @@ def save_networks(netG,netD,z,opt):
     torch.save(z, '%s/z_opt.pth' % (opt.outf))
 
 def adjust_scales2image(real_,opt):
-    #opt.num_scales = int((math.log(math.pow(opt.min_size / (real_.shape[2]), 1), opt.scale_factor_init))) + 1
     opt.num_scales = math.ceil((math.log(math.pow(opt.min_size / (min(real_.shape[2], real_.shape[3])), 1), opt.scale_factor_init))) + 1
     scale2stop = math.ceil(math.log(min([opt.max_size, max([real_.shape[2], real_.shape[3]])]) / max([real_.shape[2], real_.shape[3]]),opt.scale_factor_init))
     opt.stop_scale = opt.num_scales - scale2stop
     opt.scale1 = min(opt.max_size / max([real_.shape[2], real_.shape[3]]),1)  # min(250/max([real_.shape[0],real_.shape[1]]),1)
     real = imresize(real_, opt.scale1, opt)
-    #opt.scale_factor = math.pow(opt.min_size / (real.shape[2]), 1 / (opt.stop_scale))
     opt.scale_factor = math.pow(opt.min_size/(min(real.shape[2],real.shape[3])),1/(opt.stop_scale))
     scale2stop = math.ceil(math.log(min([opt.max_size, max([real_.shape[2], real_.shape[3]])]) / max([real_.shape[2], real_.shape[3]]),opt.scale_factor_init))
     opt.stop_scale = opt.num_scales - scale2stop
@@ -210,9 +184,8 @@ def adjust_scales2image_SR(real_,opt):
     opt.num_scales = int((math.log(opt.min_size / min(real_.shape[2], real_.shape[3]), opt.scale_factor_init))) + 1
     scale2stop = int(math.log(min(opt.max_size , max(real_.shape[2], real_.shape[3])) / max(real_.shape[0], real_.shape[3]), opt.scale_factor_init))
     opt.stop_scale = opt.num_scales - scale2stop
-    opt.scale1 = min(opt.max_size / max([real_.shape[2], real_.shape[3]]), 1)  # min(250/max([real_.shape[0],real_.shape[1]]),1)
+    opt.scale1 = min(opt.max_size / max([real_.shape[2], real_.shape[3]]), 1)
     real = imresize(real_, opt.scale1, opt)
-    #opt.scale_factor = math.pow(opt.min_size / (real.shape[2]), 1 / (opt.stop_scale))
     opt.scale_factor = math.pow(opt.min_size/(min(real.shape[2],real.shape[3])),1/(opt.stop_scale))
     scale2stop = int(math.log(min(opt.max_size, max(real_.shape[2], real_.shape[3])) / max(real_.shape[0], real_.shape[3]), opt.scale_factor_init))
     opt.stop_scale = opt.num_scales - scale2stop
@@ -228,17 +201,16 @@ def creat_reals_pyramid(real,reals,opt):
 
 
 def load_trained_pyramid(opt, mode_='train'):
-    #dir = 'TrainedModels/%s/scale_factor=%f' % (opt.input_name[:-4], opt.scale_factor_init)
     mode = opt.mode
     opt.mode = 'train'
     if (mode == 'animation_train') | (mode == 'SR_train') | (mode == 'paint_train'):
         opt.mode = mode
     dir = generate_dir2save(opt)
     if(os.path.exists(dir)):
-        Gs = torch.load('%s/Gs.pth' % dir)
-        Zs = torch.load('%s/Zs.pth' % dir)
-        reals = torch.load('%s/reals.pth' % dir)
-        NoiseAmp = torch.load('%s/NoiseAmp.pth' % dir)
+        Gs = torch.load('%s/Gs.pth' % dir,map_location=torch.device('cpu'))
+        Zs = torch.load('%s/Zs.pth' % dir,map_location=torch.device('cpu'))
+        reals = torch.load('%s/reals.pth' % dir,map_location=torch.device('cpu'))
+        NoiseAmp = torch.load('%s/NoiseAmp.pth' % dir,map_location=torch.device('cpu'))
     else:
         print('no appropriate trained model is exist, please train first')
     opt.mode = mode
@@ -249,7 +221,7 @@ def generate_in2coarsest(reals,scale_v,scale_h,opt):
     real_down = upsampling(real, scale_v * real.shape[2], scale_h * real.shape[3])
     if opt.gen_start_scale == 0:
         in_s = torch.full(real_down.shape, 0, device=opt.device)
-    else: #if n!=0
+    else:
         in_s = upsampling(real_down, real_down.shape[2], real_down.shape[3])
     return in_s
 
@@ -315,7 +287,6 @@ def quant(prev,device):
     x = torch.from_numpy(x)
     x = move_to_gpu(x)
     x = x.type(torch.cuda.FloatTensor) if () else x.type(torch.FloatTensor)
-    #x = x.type(torch.FloatTensor.to(device))
     x = x.view(prev.shape)
     return x,centers
 
@@ -323,12 +294,10 @@ def quant2centers(paint, centers):
     arr = paint.reshape((-1, 3)).cpu()
     kmeans = KMeans(n_clusters=5, init=centers, n_init=1).fit(arr)
     labels = kmeans.labels_
-    #centers = kmeans.cluster_centers_
     x = centers[labels]
     x = torch.from_numpy(x)
     x = move_to_gpu(x)
     x = x.type(torch.cuda.FloatTensor) if torch.cuda.is_available() else x.type(torch.FloatTensor)
-    #x = x.type(torch.cuda.FloatTensor)
     x = x.view(paint.shape)
     return x
 
@@ -352,5 +321,3 @@ def dilate_mask(mask,opt):
     plt.imsave('%s/%s_mask_dilated.png' % (opt.ref_dir, opt.ref_name[:-4]), convert_image_np(mask), vmin=0,vmax=1)
     mask = (mask-mask.min())/(mask.max()-mask.min())
     return mask
-
-

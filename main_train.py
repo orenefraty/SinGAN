@@ -3,7 +3,6 @@ from SinGAN.manipulate import *
 from SinGAN.training import *
 import SinGAN.functions as functions
 
-
 if __name__ == '__main__':
     parser = get_arguments()
     parser.add_argument('--input_dir', help='input image dir', default='Input/Images')

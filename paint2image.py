@@ -24,8 +24,6 @@ if __name__ == '__main__':
     dir2save = functions.generate_dir2save(opt)
     if dir2save is None:
         print('task does not exist')
-    #elif (os.path.exists(dir2save)):
-    #    print("output already exist")
     else:
         try:
             os.makedirs(dir2save)
@@ -51,8 +49,6 @@ if __name__ == '__main__':
             if opt.quantization_flag:
                 opt.mode = 'paint_train'
                 dir2trained_model = functions.generate_dir2save(opt)
-                # N = len(reals) - 1
-                # n = opt.paint_start_scale
                 real_s = imresize(real, pow(opt.scale_factor, (N - n)), opt)
                 real_s = real_s[:, :, :reals[n].shape[2], :reals[n].shape[3]]
                 real_quant, centers = functions.quant(real_s, opt.device)
@@ -60,12 +56,9 @@ if __name__ == '__main__':
                 plt.imsave('%s/in_paint.png' % dir2save, functions.convert_image_np(in_s), vmin=0, vmax=1)
                 in_s = functions.quant2centers(ref, centers)
                 in_s = imresize(in_s, pow(opt.scale_factor, (N - n)), opt)
-                # in_s = in_s[:, :, :reals[n - 1].shape[2], :reals[n - 1].shape[3]]
-                # in_s = imresize(in_s, 1 / opt.scale_factor, opt)
                 in_s = in_s[:, :, :reals[n].shape[2], :reals[n].shape[3]]
                 plt.imsave('%s/in_paint_quant.png' % dir2save, functions.convert_image_np(in_s), vmin=0, vmax=1)
                 if (os.path.exists(dir2trained_model)):
-                    # print('Trained model does not exist, training SinGAN for SR')
                     Gs, Zs, reals, NoiseAmp = functions.load_trained_pyramid(opt)
                     opt.mode = 'paint2image'
                 else:
@@ -73,8 +66,3 @@ if __name__ == '__main__':
                     opt.mode = 'paint2image'
             out = SinGAN_generate(Gs[n:], Zs[n:], reals, NoiseAmp[n:], opt, in_s, n=n, num_samples=1)
             plt.imsave('%s/start_scale=%d.png' % (dir2save, opt.paint_start_scale), functions.convert_image_np(out.detach()), vmin=0, vmax=1)
-
-
-
-
-

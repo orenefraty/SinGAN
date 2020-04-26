@@ -23,8 +23,6 @@ if __name__ == '__main__':
     dir2save = functions.generate_dir2save(opt)
     if dir2save is None:
         print('task does not exist')
-    #elif (os.path.exists(dir2save)):
-    #    print("output already exist")
     else:
         try:
             os.makedirs(dir2save)
