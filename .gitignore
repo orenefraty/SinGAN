@@ -1,4 +1,5 @@
 # Don't track content of these folders
+.DS_Store
 Output/
 TrainedModels/
 Input/
