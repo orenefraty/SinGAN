@@ -1,4 +1,3 @@
-from ImageModifiers.CannyKeepColors import canny_keep_colors
 from config import get_arguments
 from SinGAN.manipulate_preprocess import *
 from SinGAN.training import *
