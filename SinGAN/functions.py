@@ -13,6 +13,9 @@ import random
 from sklearn.cluster import KMeans
 
 # custom weights initialization called on netG and netD
+def show(img):
+    plt.imshow(np.transpose(img[0,:,:,:].cpu(),(1,2,0)))
+
 
 def read_image(opt):
     x = img.imread('%s%s' % (opt.input_img,opt.ref_image))
@@ -207,10 +210,10 @@ def load_trained_pyramid(opt, mode_='train'):
         opt.mode = mode
     dir = generate_dir2save(opt)
     if(os.path.exists(dir)):
-        Gs = torch.load('%s/Gs.pth' % dir,map_location=torch.device('cpu'))
-        Zs = torch.load('%s/Zs.pth' % dir,map_location=torch.device('cpu'))
-        reals = torch.load('%s/reals.pth' % dir,map_location=torch.device('cpu'))
-        NoiseAmp = torch.load('%s/NoiseAmp.pth' % dir,map_location=torch.device('cpu'))
+        Gs = torch.load('%s/Gs.pth' % dir)
+        Zs = torch.load('%s/Zs.pth' % dir)
+        reals = torch.load('%s/reals.pth' % dir)
+        NoiseAmp = torch.load('%s/NoiseAmp.pth' % dir)
     else:
         print('no appropriate trained model is exist, please train first')
     opt.mode = mode

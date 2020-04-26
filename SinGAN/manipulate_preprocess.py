@@ -23,7 +23,6 @@ from config import get_arguments
 import blend_modes
 import SinGAN.functions as functions
 
-
 def generate_gif(Gs, Zs, reals, NoiseAmp, opt, alpha=0.1, beta=0.9, start_scale=2, fps=10):
     in_s = torch.full(Zs[0].shape, 0, device=opt.device)
     images_cur = []
@@ -141,13 +140,15 @@ def SinGAN_generate(Gs, Zs, reals, NoiseAmp, opt, modification=None, in_s=None, 
             z_in = noise_amp * (z_curr) + I_prev
             # image modification TODO
             dir2save = '%s/RandomSamples/%s/gen_start_scale=%d' % (opt.out, opt.input_name[:-4], gen_start_scale)
+
             plt.imsave('%s/%d_before_modification.png' % (dir2save, i), functions.convert_image_np(z_in.detach()), vmin=0,vmax=1)
+            #TODO if you want the modification to happen only once, change the >= into ==
             if (n >= gen_start_scale) & (modification is not None):
                 shape = z_in.shape
-                cont_in = preprocess_content_image(opt, reals)
+                cont_in = preprocess_content_image(opt, reals,n)
                 z_in = modify_input_to_generator(z_in, cont_in, modification, opacity=1)
                 assert shape == z_in.shape
-            plt.imsave('%s/%d_after_modification.png' % (dir2save, i), functions.convert_image_np(z_in.detach()), vmin=0,vmax=1)
+                plt.imsave('%s/%d_after_modification.png' % (dir2save, i), functions.convert_image_np(z_in.detach()), vmin=0,vmax=1)
 
             I_curr = G(z_in.detach(), I_prev)
 
@@ -240,7 +241,7 @@ def modify_input_to_generator(z_in, cont_in, modification, opacity=0.7):
     return modified_image
 
 
-def preprocess_content_image(opt, reals):
+def preprocess_content_image(opt, reals,scale):
     real = functions.read_image(opt)
     functions.adjust_scales2image(real, opt)
     ref = functions.read_image_dir('%s/%s' % (opt.ref_dir, opt.ref_name), opt)
@@ -249,7 +250,7 @@ def preprocess_content_image(opt, reals):
         ref = ref[:, :, :real.shape[2], :real.shape[3]]
 
     N = len(reals) - 1
-    n = opt.gen_start_scale
+    n = scale
     in_s = imresize(ref, pow(opt.scale_factor, (N - n + 1)), opt)
     in_s = in_s[:, :, :reals[n - 1].shape[2], :reals[n - 1].shape[3]]
     in_s = imresize(in_s, 1 / opt.scale_factor, opt)
