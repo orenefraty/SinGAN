@@ -22,6 +22,7 @@ from SinGAN.training import *
 from config import get_arguments
 import blend_modes
 import SinGAN.functions as functions
+from skimage.morphology import dilation,disk
 
 def generate_gif(Gs, Zs, reals, NoiseAmp, opt, alpha=0.1, beta=0.9, start_scale=2, fps=10):
     in_s = torch.full(Zs[0].shape, 0, device=opt.device)
@@ -221,6 +222,10 @@ def modify_input_to_generator(z_in, cont_in, modification, opacity=0.8):
         cont_in_img = np.transpose(cont_in[0, :, :, :], (1, 2, 0))
         cont_in_gs = rgb2gray(cont_in_img.numpy())
         edges_bw = feature.canny(cont_in_gs)
+
+        #edges with dilation
+        edges_bw = dilation(edges_bw, selem=disk(2))
+
         edges = edges_bw[np.newaxis, np.newaxis, ...]
         cont_in = np.hstack((cont_in, edges))
         cont_in = np.transpose(cont_in[0, :, :, :], (1, 2, 0))
