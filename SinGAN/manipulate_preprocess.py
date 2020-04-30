@@ -224,7 +224,7 @@ def modify_input_to_generator(z_in, cont_in, modification, opacity=0.8):
         edges_bw = feature.canny(cont_in_gs)
 
         #edges with dilation
-        edges_bw = dilation(edges_bw, selem=disk(2))
+        edges_bw = dilation(edges_bw, selem=disk(1))
 
         edges = edges_bw[np.newaxis, np.newaxis, ...]
         cont_in = np.hstack((cont_in, edges))

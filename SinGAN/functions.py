@@ -210,10 +210,11 @@ def load_trained_pyramid(opt, mode_='train'):
         opt.mode = mode
     dir = generate_dir2save(opt)
     if(os.path.exists(dir)):
-        Gs = torch.load('%s/Gs.pth' % dir,map_location=torch.device('cpu'))
-        Zs = torch.load('%s/Zs.pth' % dir,map_location=torch.device('cpu'))
-        reals = torch.load('%s/reals.pth' % dir,map_location=torch.device('cpu'))
-        NoiseAmp = torch.load('%s/NoiseAmp.pth' % dir,map_location=torch.device('cpu'))
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        Gs = torch.load('%s/Gs.pth' % dir,map_location=torch.device(device))
+        Zs = torch.load('%s/Zs.pth' % dir,map_location=torch.device(device))
+        reals = torch.load('%s/reals.pth' % dir,map_location=torch.device(device))
+        NoiseAmp = torch.load('%s/NoiseAmp.pth' % dir,map_location=torch.device(device))
     else:
         print('no appropriate trained model is exist, please train first')
     opt.mode = mode
