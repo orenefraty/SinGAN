@@ -92,7 +92,7 @@ def generate_gif(Gs, Zs, reals, NoiseAmp, opt, alpha=0.1, beta=0.9, start_scale=
 
 
 def SinGAN_generate(Gs, Zs, reals, NoiseAmp, opt, modification=None, in_s=None, scale_v=1, scale_h=1, n=0,
-                    gen_start_scale=0, num_samples=50):
+                    gen_start_scale=0, num_samples=10):
     # start_scale = here we manipulate the image
     # func stylize
 
@@ -138,26 +138,42 @@ def SinGAN_generate(Gs, Zs, reals, NoiseAmp, opt, modification=None, in_s=None, 
                 z_curr = Z_opt
 
             z_in = noise_amp * (z_curr) + I_prev
-            # image modification TODO
-            dir2save = '%s/RandomSamples/%s/gen_start_scale=%d' % (opt.out, opt.input_name[:-4], gen_start_scale)
 
-            plt.imsave('%s/%d_before_modification.png' % (dir2save, i), functions.convert_image_np(z_in.detach()), vmin=0,vmax=1)
+            dir2save = '%s/RandomSamples/%s/%s/gen_start_scale=%d' % (opt.out, opt.input_name[:-4], modification, gen_start_scale)
+
+            try:
+                os.makedirs(dir2save)
+            except OSError:
+                pass
+
+            if n==gen_start_scale:
+                plt.imsave('%s/%d_before_modification.png' % (dir2save, i), functions.convert_image_np(z_in.detach()), vmin=0,vmax=1)
+
+            # ##################################### Image modification #################################################
             #TODO if you want the modification to happen only once, change the >= into ==
+            #TODO at the moment, modification happens at every scale from the gen_start_scale and above, unless no
+            #TODO modification is specificed
+            #TODO The modified image is saved only at the generation scale
+            #TODO when using blending, consider trying different blending options and opcity. These can be modified
+            #TODO within the modify_input_to_generator function below
             if (n >= gen_start_scale) & (modification is not None):
                 shape = z_in.shape
                 cont_in = preprocess_content_image(opt, reals,n)
                 z_in = modify_input_to_generator(z_in, cont_in, modification, opacity=1)
                 assert shape == z_in.shape
-                plt.imsave('%s/%d_after_modification.png' % (dir2save, i), functions.convert_image_np(z_in.detach()), vmin=0,vmax=1)
-
+                if n==gen_start_scale:
+                    plt.imsave('%s/%d_after_modification.png' % (dir2save, i), functions.convert_image_np(z_in.detach()), vmin=0,vmax=1)
+            # ################################## End of image modification #############################################
             I_curr = G(z_in.detach(), I_prev)
 
             if n == len(reals) - 1:
                 if opt.mode == 'train':
-                    dir2save = '%s/RandomSamples/%s/gen_start_scale=%d' % (
-                    opt.out, opt.input_name[:-4], gen_start_scale)
+                    dir2save = '%s/RandomSamples/%s/%s/gen_start_scale=%d' % (
+                    opt.out, opt.input_name[:-4], modification, gen_start_scale)
                 else:
-                    dir2save = functions.generate_dir2save(opt)
+                    #dir2save = functions.generate_dir2save(opt)
+                    dir2save = '%s/RandomSamples/%s/%s/gen_start_scale=%d' % (
+                    opt.out, opt.input_name[:-4], modification, gen_start_scale)
                 try:
                     os.makedirs(dir2save)
                 except OSError:
@@ -177,51 +193,30 @@ from skimage import data
 import math
 from skimage.transform import resize
 
-def modify_input_to_generator(z_in, cont_in, modification, opacity=0.7):
+def modify_input_to_generator(z_in, cont_in, modification, opacity=0.8):
     cuda_device = cont_in.device
     modified_image= None
     if cont_in.device.type == 'cuda':
         cont_in = cont_in.cpu()
         z_in = z_in.cpu()
-    if modification == 'blend':
-        z_in = np.hstack((z_in, np.ones(shape=[1, 1, z_in.shape[2], z_in.shape[3]]) * 255))
-        cont_in = np.hstack((cont_in, np.ones(shape=[1, 1, cont_in.shape[2], cont_in.shape[3]]) * 255))
 
-        #cont_in_img = np.transpose(cont_in[0, :, :, :], (1, 2, 0))
-        #cont_in_gs = rgb2gray(cont_in_img.numpy())
-        #edges = feature.canny(cont_in_gs)
-        #edges = edges[np.newaxis, np.newaxis, ...]
-        #cont_in = np.hstack((cont_in, edges))
+    if modification == 'blend':
         z_in = np.transpose(z_in[0, :, :, :], (1, 2, 0))
         cont_in = np.transpose(cont_in[0, :, :, :], (1, 2, 0))
-        cont_in = resize(cont_in, (z_in.shape[0] , z_in.shape[1]), anti_aliasing=True)
-        # replace the edges in the content images
-        modified_image = blend_modes.hard_light(z_in, cont_in, opacity)[:, :, :-1]
-
+        z_in = np.concatenate((z_in, np.full(shape=(z_in.shape[0], z_in.shape[1], 1), fill_value=1.0)), axis=2)
+        cont_in = np.concatenate((cont_in, np.full(shape=(cont_in.shape[0], cont_in.shape[1], 1), fill_value=1.0)),axis=2)
+        cont_in = resize(cont_in, (z_in.shape[0], z_in.shape[1], 4), anti_aliasing=True)
+        # blend - we can play with types of blends, and which image is the background and which is the foreground - only the forground (second image) is manipulated
+        # modified_image = blend_modes.soft_light(cont_in, z_in, opacity)
+        # modified_image = blend_modes.grain_merge(cont_in, z_in, opacity)
+        modified_image = blend_modes.darken_only(cont_in, z_in, opacity)
+        # modified_image = blend_modes.hard_light(cont_in, z_in, opacity)
+        # modified_image = blend_modes.hard_light(z_in, cont_in, opacity)
+        modified_image = rgba2rgb(modified_image)
         modified_image = np.transpose(modified_image, (2, 0, 1))
         modified_image = modified_image[np.newaxis, ...]
         modified_image = torch.from_numpy(modified_image).float().to(cuda_device)
 
-        #z_in = np.hstack((z_in, np.ones(shape=[1, 1, z_in.shape[2], z_in.shape[3]]) * 255))
-        #cont_in_img = np.transpose(cont_in[0, :, :, :], (1, 2, 0))
-        #cont_in_gs = rgb2gray(cont_in_img.numpy())
-        #edges = feature.canny(cont_in_gs)
-        #edges = edges[np.newaxis, np.newaxis, ...]
-        #cont_in = np.hstack((cont_in, edges))
-        #z_in = np.transpose(z_in[0, :, :, :], (1, 2, 0))
-        #cont_in = np.transpose(cont_in[0, :, :, :], (1, 2, 0))
-        #cont_in = resize(cont_in, (z_in.shape[0] , z_in.shape[1]), anti_aliasing=True)
-        # convert RGB images to RGBA, with alpha value of 255
-        #z_in = np.concatenate((z_in, np.full(shape=(z_in.shape[0], z_in.shape[1], 1), fill_value=255.0)), axis=2)
-        #z_in = np.hstack((z_in, np.ones(shape=(z_in.shape[0], z_in.shape[1], 1)) * 255))
-        #cont_in = np.concatenate((cont_in, np.full(shape=(cont_in.shape[0], cont_in.shape[1], 1), fill_value=255.0)),axis=2)
-        #cont_in = np.hstack((cont_in, np.ones(shape=(cont_in.shape[0], cont_in.shape[1], 1)) * 255))
-
-        # blend - we can play with types of blends, and which image is the background and which is the foreground - only the forground (second image) is manipulated
-        # modified_image = blend_modes.soft_light(z_in, cont_in, opacity)[:, :, :-1]
-        # modified_image = blend_modes.grain_merge(z_in, cont_in, opacity)[:, :, :-1]
-        # modified_image = blend_modes.darken_only(z_in, cont_in, opacity)[:, :, :-1]
-        #modified_image = blend_modes.hard_light(z_in, cont_in, opacity)[:, :, :-1]
     if modification == 'canny_color':
         cont_in_img = np.transpose(cont_in[0, :, :, :], (1, 2, 0))
         cont_in_gs = rgb2gray(cont_in_img.numpy())
