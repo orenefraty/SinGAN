@@ -8,7 +8,13 @@ class ConvBlock(nn.Sequential):
     def __init__(self, in_channel, out_channel, ker_size, padd, stride):
         super(ConvBlock,self).__init__()
         self.add_module('conv',nn.Conv2d(in_channel ,out_channel,kernel_size=ker_size,stride=stride,padding=padd)),
-        self.add_module('norm',nn.BatchNorm2d(out_channel)),
+        ## TODO:
+        # we will start by replacing only the following batchnorm with style specific instance norm, as in the fried code
+        # we need a style index as input to this block only
+        # note: there are two additional convolutions in the code that are not followed by batch norm. we can experiment
+        # with adding conditioned instance norm after them as well, but best to start without.
+        self.add_module('norm', nn.InstanceNorm2d(out_channel, affine=True)),
+        #self.add_module('norm',nn.BatchNorm2d(out_channel)),
         self.add_module('LeakyRelu',nn.LeakyReLU(0.2, inplace=True))
 
 def weights_init(m):
