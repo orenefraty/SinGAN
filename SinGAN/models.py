@@ -5,7 +5,7 @@ import torch.nn.functional as F
 
 
 class ConvBlock(nn.Sequential):
-    def __init__(self, in_channel, out_channel, ker_size, padd, stride):
+    def __init__(self, in_channel, out_channel, ker_size, padd, stride, num_images=2):
         super(ConvBlock,self).__init__()
         self.add_module('conv',nn.Conv2d(in_channel ,out_channel,kernel_size=ker_size,stride=stride,padding=padd)),
         ## TODO:
@@ -13,9 +13,29 @@ class ConvBlock(nn.Sequential):
         # we need a style index as input to this block only
         # note: there are two additional convolutions in the code that are not followed by batch norm. we can experiment
         # with adding conditioned instance norm after them as well, but best to start without.
-        self.add_module('norm', nn.InstanceNorm2d(out_channel, affine=True)),
+        #self.add_module('norm', nn.InstanceNorm2d(out_channel, affine=True)), # for single image instance norm
+        self.add_module('norm',ConditionalInstanceNorm2d(out_channel, num_images, affine=True)), # for several image instance norm
         #self.add_module('norm',nn.BatchNorm2d(out_channel)),
         self.add_module('LeakyRelu',nn.LeakyReLU(0.2, inplace=True))
+
+
+    def forward(self, input: torch.Tensor, style_idx):
+        x = self.conv(input)
+        x = self.norm(x, style_idx)
+        x = self.LeakyRelu(x)
+        return x
+
+
+class ConditionalInstanceNorm2d(torch.nn.Module):
+
+    def __init__(self, num_channels, num_styles, affine=True):
+        super(ConditionalInstanceNorm2d, self).__init__()
+        # Create one norm 2d for each style
+        self.norm2ds = torch.nn.ModuleList([torch.nn.InstanceNorm2d(num_channels, affine=affine)
+                                            for _ in range(num_styles)])
+
+    def forward(self, x, style_idx):
+        return self.norm2ds[style_idx](x)
 
 def weights_init(m):
     classname = m.__class__.__name__
@@ -38,9 +58,9 @@ class WDiscriminator(nn.Module):
             self.body.add_module('block%d'%(i+1),block)
         self.tail = nn.Conv2d(max(N,opt.min_nfc),1,kernel_size=opt.ker_size,stride=1,padding=opt.padd_size)
 
-    def forward(self,x):
-        x = self.head(x)
-        x = self.body(x)
+    def forward(self,x,style_idx):
+        x = self.head(x,style_idx)
+        x = self.body(x,style_idx)
         x = self.tail(x)
         return x
 
@@ -59,9 +79,9 @@ class GeneratorConcatSkip2CleanAdd(nn.Module):
             nn.Conv2d(max(N,opt.min_nfc),opt.nc_im,kernel_size=opt.ker_size,stride =1,padding=opt.padd_size),
             nn.Tanh()
         )
-    def forward(self,x,y):
-        x = self.head(x)
-        x = self.body(x)
+    def forward(self,x,y,style_idx):
+        x = self.head(x,style_idx)
+        x = self.body(x,style_idx)
         x = self.tail(x)
         ind = int((y.shape[2]-x.shape[2])/2)
         y = y[:,:,ind:(y.shape[2]-ind),ind:(y.shape[3]-ind)]

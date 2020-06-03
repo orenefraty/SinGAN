@@ -127,10 +127,15 @@ def calc_gradient_penalty(netD, real_data, fake_data, LAMBDA, device):
     return gradient_penalty
 
 def read_image(opt):
-    x = img.imread('%s/%s' % (opt.input_dir,opt.input_name))
-    x = np2torch(x,opt)
-    x = x[:,0:3,:,:]
-    return x
+    x1 = img.imread('%s/%s' % (opt.input_dir,opt.input_name1))
+    x1 = np2torch(x1,opt)
+    x1 = x1[:,0:3,:,:]
+
+    x2 = img.imread('%s/%s' % (opt.input_dir,opt.input_name2))
+    x2 = np2torch(x2,opt)
+    x2 = x2[:,0:3,:,:]
+
+    return x1, x2
 
 def read_image_dir(dir,opt):
     x = img.imread('%s' % (dir))
@@ -232,7 +237,7 @@ def generate_in2coarsest(reals,scale_v,scale_h,opt):
 def generate_dir2save(opt):
     dir2save = None
     if (opt.mode == 'train') | (opt.mode == 'SR_train'):
-        dir2save = 'TrainedModels/%s/scale_factor=%f,alpha=%d' % (opt.input_name[:-4], opt.scale_factor_init,opt.alpha)
+        dir2save = 'TrainedModels/%s_%s/scale_factor=%f,alpha=%d' % (opt.input_name1[:-4], opt.input_name2[:-4], opt.scale_factor_init,opt.alpha)
     elif (opt.mode == 'animation_train') :
         dir2save = 'TrainedModels/%s/scale_factor=%f_noise_padding' % (opt.input_name[:-4], opt.scale_factor_init)
     elif (opt.mode == 'paint_train') :
