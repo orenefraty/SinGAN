@@ -170,7 +170,7 @@ def train_single_scale(netD,netG,reals1,reals2,Gs,Zs,in_s,NoiseAmp,opt,centers=N
                 errD_fake.backward(retain_graph=True)
                 D_G_z = output.mean().item()
 
-                gradient_penalty = functions.calc_gradient_penalty(netD, real, fake, opt.lambda_grad, opt.device)
+                gradient_penalty = functions.calc_gradient_penalty(netD, real, fake, opt.lambda_grad, opt.device, train_image)
                 gradient_penalty.backward()
 
                 errD = errD_real + errD_fake + gradient_penalty
@@ -193,7 +193,7 @@ def train_single_scale(netD,netG,reals1,reals2,Gs,Zs,in_s,NoiseAmp,opt,centers=N
                         z_prev = functions.quant2centers(z_prev, centers)
                         plt.imsave('%s/z_prev.png' % (opt.outf), functions.convert_image_np(z_prev), vmin=0, vmax=1)
                     Z_opt = opt.noise_amp*z_opt+z_prev
-                    rec_loss = alpha*loss(netG(Z_opt.detach(),z_prev),real,train_image)
+                    rec_loss = alpha*loss(netG(Z_opt.detach(),z_prev,train_image),real)
                     rec_loss.backward(retain_graph=True)
                     rec_loss = rec_loss.detach()
                 else:
@@ -212,7 +212,7 @@ def train_single_scale(netD,netG,reals1,reals2,Gs,Zs,in_s,NoiseAmp,opt,centers=N
 
             if epoch % 500 == 0 or epoch == (opt.niter-1):
                 plt.imsave('%s/fake_sample.png' %  (opt.outf), functions.convert_image_np(fake.detach()), vmin=0, vmax=1)
-                plt.imsave('%s/G(z_opt).png'    % (opt.outf),  functions.convert_image_np(netG(Z_opt.detach(), z_prev).detach(), train_image), vmin=0, vmax=1)
+                plt.imsave('%s/G(z_opt).png'    % (opt.outf),  functions.convert_image_np(netG(Z_opt.detach(), z_prev, train_image).detach()), vmin=0, vmax=1)
 
                 torch.save(z_opt, '%s/z_opt.pth' % (opt.outf))
 
