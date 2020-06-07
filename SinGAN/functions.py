@@ -218,12 +218,13 @@ def load_trained_pyramid(opt, mode_='train'):
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
         Gs = torch.load('%s/Gs.pth' % dir,map_location=torch.device(device))
         Zs = torch.load('%s/Zs.pth' % dir,map_location=torch.device(device))
-        reals = torch.load('%s/reals.pth' % dir,map_location=torch.device(device))
+        reals1 = torch.load('%s/reals1.pth' % dir,map_location=torch.device(device))
+        reals2 = torch.load('%s/reals2.pth' % dir,map_location=torch.device(device))
         NoiseAmp = torch.load('%s/NoiseAmp.pth' % dir,map_location=torch.device(device))
     else:
         print('no appropriate trained model is exist, please train first')
     opt.mode = mode
-    return Gs,Zs,reals,NoiseAmp
+    return Gs,Zs,reals1,reals2,NoiseAmp
 
 def generate_in2coarsest(reals,scale_v,scale_h,opt):
     real = reals[opt.gen_start_scale]

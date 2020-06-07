@@ -50,7 +50,8 @@ def train(opt,Gs,Zs,reals1,reals2,NoiseAmp):
 
         torch.save(Zs, '%s/Zs.pth' % (opt.out_))
         torch.save(Gs, '%s/Gs.pth' % (opt.out_))
-        torch.save(reals, '%s/reals.pth' % (opt.out_))
+        torch.save(reals1, '%s/reals1.pth' % (opt.out_))
+        torch.save(reals2, '%s/reals2.pth' % (opt.out_))
         torch.save(NoiseAmp, '%s/NoiseAmp.pth' % (opt.out_))
 
         scale_num+=1
