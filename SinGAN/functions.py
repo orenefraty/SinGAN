@@ -142,13 +142,13 @@ def read_image(opt):
 
     startx_1 = min_x//2-(shape1[0]//2)
     starty_1 = min_y//2-(shape1[1]//2)
-    x1 = x1[starty_1:starty_1+shape1[1],startx_1:startx_1+shape1[0],:]
+    #x1 = x1[starty_1:starty_1+shape1[1],startx_1:startx_1+shape1[0],:]
 
     startx_2 = min_x//2-(shape2[0]//2)
     starty_2 = min_y//2-(shape2[1]//2)
-    x2 = x2[starty_2:starty_2+shape2[1],startx_2:startx_2+shape2[0],:]
+    #x2 = x2[starty_2:starty_2+shape2[1],startx_2:startx_2+shape2[0],:]
 
-    assert x1.shape == x2.shape
+    #assert x1.shape == x2.shape
     return x1, x2
 
 def read_image_dir(dir,opt):
