@@ -1,7 +1,7 @@
 # Don't track content of these folders
 .DS_Store
 Output/
-#TrainedModels/
+TrainedModels/
 Input/
 __pycache__/
 .idea
