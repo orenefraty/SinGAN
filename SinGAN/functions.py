@@ -128,13 +128,27 @@ def calc_gradient_penalty(netD, real_data, fake_data, LAMBDA, device, style_idx)
 
 def read_image(opt):
     x1 = img.imread('%s/%s' % (opt.input_dir,opt.input_name1))
+    shape1 = x1.shape[:2]
     x1 = np2torch(x1,opt)
     x1 = x1[:,0:3,:,:]
 
     x2 = img.imread('%s/%s' % (opt.input_dir,opt.input_name2))
     x2 = np2torch(x2,opt)
     x2 = x2[:,0:3,:,:]
+    shape2 = x2.shape[:2]
 
+    min_x =min(shape1[0],shape2[0])
+    min_y =min(shape1[1],shape2[1])
+
+    startx_1 = min_x//2-(shape1[0]//2)
+    starty_1 = min_y//2-(shape1[1]//2)
+    #x1 = x1[starty_1:starty_1+shape1[1],startx_1:startx_1+shape1[0],:]
+
+    startx_2 = min_x//2-(shape2[0]//2)
+    starty_2 = min_y//2-(shape2[1]//2)
+    #x2 = x2[starty_2:starty_2+shape2[1],startx_2:startx_2+shape2[0],:]
+
+    #assert x1.shape == x2.shape
     return x1, x2
 
 def read_image_dir(dir,opt):
@@ -235,7 +249,7 @@ def generate_in2coarsest(reals,scale_v,scale_h,opt):
         in_s = upsampling(real_down, real_down.shape[2], real_down.shape[3])
     return in_s
 
-def generate_dir2save(opt):
+def generate_dir2save(opt, style_index=None):
     dir2save = None
     if (opt.mode == 'train') | (opt.mode == 'SR_train'):
         dir2save = 'TrainedModels/%s_%s/scale_factor=%f,alpha=%d' % (opt.input_name1[:-4], opt.input_name2[:-4], opt.scale_factor_init,opt.alpha)
@@ -244,7 +258,8 @@ def generate_dir2save(opt):
     elif (opt.mode == 'paint_train') :
         dir2save = 'TrainedModels/%s/scale_factor=%f_paint/start_scale=%d' % (opt.input_name[:-4], opt.scale_factor_init,opt.paint_start_scale)
     elif opt.mode == 'random_samples':
-        dir2save = '%s/RandomSamples/%s/gen_start_scale=%d' % (opt.out,opt.input_name[:-4], opt.gen_start_scale)
+        input_name = opt.input_name1[:-4] if style_index == 0 else opt.input_name2[:-4]
+        dir2save = '%s/RandomSamples/%s/gen_start_scale=%d' % (opt.out,input_name, opt.gen_start_scale)
     elif opt.mode == 'random_samples_arbitrary_sizes':
         dir2save = '%s/RandomSamples_ArbitrerySizes/%s/scale_v=%f_scale_h=%f' % (opt.out,opt.input_name[:-4], opt.scale_v, opt.scale_h)
     elif opt.mode == 'animation':

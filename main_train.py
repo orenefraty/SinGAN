@@ -30,4 +30,6 @@ if __name__ == '__main__':
         functions.adjust_scales2image(real2, opt)
         # TODO: do we need two reals?
         train(opt, Gs, Zs, reals1, reals2, NoiseAmp)
-        SinGAN_generate(Gs,Zs,reals,NoiseAmp,opt)
+        SinGAN_generate(Gs,Zs,reals1,NoiseAmp,opt,0)
+        SinGAN_generate(Gs,Zs,reals2,NoiseAmp,opt,1)
+

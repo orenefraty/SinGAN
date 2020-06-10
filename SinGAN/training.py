@@ -17,7 +17,6 @@ def train(opt,Gs,Zs,reals1,reals2,NoiseAmp):
     reals1 = functions.creat_reals_pyramid(real1,reals1,opt)
     reals2 = functions.creat_reals_pyramid(real2, reals2, opt)
     nfc_prev = 0
-
     while scale_num<opt.stop_scale+1:
         opt.nfc = min(opt.nfc_init * pow(2, math.floor(scale_num / 4)), 128)
         opt.min_nfc = min(opt.min_nfc_init * pow(2, math.floor(scale_num / 4)), 128)
