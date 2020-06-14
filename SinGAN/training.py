@@ -95,7 +95,7 @@ def train_single_scale(netD,netG,reals1,reals2,Gs,Zs,in_s,NoiseAmp,opt,centers=N
     z_opt2plot = []
 
     real1 = reals1[len(Gs)]
-    real2 = reals1[len(Gs)]
+    real2 = reals2[len(Gs)]
 
     for epoch in range(opt.niter):
         for train_image in range(2):
