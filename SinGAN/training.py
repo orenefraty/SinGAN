@@ -98,11 +98,11 @@ def train_single_scale(netD,netG,reals1,reals2,Gs,Zs,in_s,NoiseAmp,opt,centers=N
     real2 = reals2[len(Gs)]
 
     for epoch in range(opt.niter):
-        for train_image in range(2):
-            if train_image == 0:
+        for style_idx in range(2):
+            if style_idx == 0:
                 real = real1
                 reals = reals1
-            elif train_image == 1:
+            elif style_idx == 1:
                 real = real2
                 reals = reals2
 
@@ -122,7 +122,7 @@ def train_single_scale(netD,netG,reals1,reals2,Gs,Zs,in_s,NoiseAmp,opt,centers=N
                 # train with real
                 netD.zero_grad()
 
-                output = netD(real,train_image).to(opt.device)
+                output = netD(real,style_idx).to(opt.device)
                 errD_real = -output.mean()#-a
                 errD_real.backward(retain_graph=True)
                 D_x = -errD_real.item()
@@ -144,15 +144,15 @@ def train_single_scale(netD,netG,reals1,reals2,Gs,Zs,in_s,NoiseAmp,opt,centers=N
                         z_prev = m_image(z_prev)
                         prev = z_prev
                     else:
-                        prev = draw_concat(Gs,Zs,reals,NoiseAmp,in_s,'rand',m_noise,m_image,opt, train_image)
+                        prev = draw_concat(Gs,Zs,reals,NoiseAmp,in_s,'rand',m_noise,m_image,opt, style_idx)
                         prev = m_image(prev)
-                        z_prev = draw_concat(Gs,Zs,reals,NoiseAmp,in_s,'rec',m_noise,m_image,opt, train_image)
+                        z_prev = draw_concat(Gs,Zs,reals,NoiseAmp,in_s,'rec',m_noise,m_image,opt, style_idx)
                         criterion = nn.MSELoss()
                         RMSE = torch.sqrt(criterion(real, z_prev))
                         opt.noise_amp = opt.noise_amp_init*RMSE
                         z_prev = m_image(z_prev)
                 else:
-                    prev = draw_concat(Gs,Zs,reals,NoiseAmp,in_s,'rand',m_noise,m_image,opt, train_image)
+                    prev = draw_concat(Gs,Zs,reals,NoiseAmp,in_s,'rand',m_noise,m_image,opt, style_idx)
                     prev = m_image(prev)
 
                 if opt.mode == 'paint_train':
@@ -164,13 +164,13 @@ def train_single_scale(netD,netG,reals1,reals2,Gs,Zs,in_s,NoiseAmp,opt,centers=N
                 else:
                     noise = opt.noise_amp*noise_+prev
 
-                fake = netG(noise.detach(),prev,train_image)
-                output = netD(fake.detach(),train_image)
+                fake = netG(noise.detach(),prev,style_idx)
+                output = netD(fake.detach(),style_idx)
                 errD_fake = output.mean()
                 errD_fake.backward(retain_graph=True)
                 D_G_z = output.mean().item()
 
-                gradient_penalty = functions.calc_gradient_penalty(netD, real, fake, opt.lambda_grad, opt.device, train_image)
+                gradient_penalty = functions.calc_gradient_penalty(netD, real, fake, opt.lambda_grad, opt.device, style_idx)
                 gradient_penalty.backward()
 
                 errD = errD_real + errD_fake + gradient_penalty
@@ -184,7 +184,7 @@ def train_single_scale(netD,netG,reals1,reals2,Gs,Zs,in_s,NoiseAmp,opt,centers=N
 
             for j in range(opt.Gsteps):
                 netG.zero_grad()
-                output = netD(fake, train_image)
+                output = netD(fake, style_idx)
                 errG = -output.mean()
                 errG.backward(retain_graph=True)
                 if alpha!=0:
@@ -193,7 +193,7 @@ def train_single_scale(netD,netG,reals1,reals2,Gs,Zs,in_s,NoiseAmp,opt,centers=N
                         z_prev = functions.quant2centers(z_prev, centers)
                         plt.imsave('%s/z_prev.png' % (opt.outf), functions.convert_image_np(z_prev), vmin=0, vmax=1)
                     Z_opt = opt.noise_amp*z_opt+z_prev
-                    rec_loss = alpha*loss(netG(Z_opt.detach(),z_prev,train_image),real)
+                    rec_loss = alpha*loss(netG(Z_opt.detach(),z_prev,style_idx),real)
                     rec_loss.backward(retain_graph=True)
                     rec_loss = rec_loss.detach()
                 else:
@@ -212,7 +212,7 @@ def train_single_scale(netD,netG,reals1,reals2,Gs,Zs,in_s,NoiseAmp,opt,centers=N
 
             if epoch % 500 == 0 or epoch == (opt.niter-1):
                 plt.imsave('%s/fake_sample.png' %  (opt.outf), functions.convert_image_np(fake.detach()), vmin=0, vmax=1)
-                plt.imsave('%s/G(z_opt).png'    % (opt.outf),  functions.convert_image_np(netG(Z_opt.detach(), z_prev, train_image).detach()), vmin=0, vmax=1)
+                plt.imsave('%s/G(z_opt).png'    % (opt.outf),  functions.convert_image_np(netG(Z_opt.detach(), z_prev, style_idx).detach()), vmin=0, vmax=1)
 
                 torch.save(z_opt, '%s/z_opt.pth' % (opt.outf))
 

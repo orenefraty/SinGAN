@@ -126,19 +126,26 @@ def calc_gradient_penalty(netD, real_data, fake_data, LAMBDA, device, style_idx)
     gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean() * LAMBDA
     return gradient_penalty
 
+
+def crop(img, x_dim, y_dim):
+    x_center = img.shape[0] // 2
+    x_start = x_center - x_dim // 2
+    x_end = x_dim+x_start
+    y_center = img.shape[1] // 2
+    y_start = y_center - y_dim // 2
+    y_end = y_dim+y_start
+    return img[x_start:x_end, y_start:y_end,:]
+
+
 def read_image(opt):
-    x1 = img.imread('%s/%s' % (opt.input_dir,opt.input_name1))
-    shape1 = x1.shape[:2]
-    x1 = np2torch(x1,opt)
-    x1 = x1[:,0:3,:,:]
-
-    x2 = img.imread('%s/%s' % (opt.input_dir,opt.input_name2))
-    x2 = np2torch(x2,opt)
-    x2 = x2[:,0:3,:,:]
-    shape2 = x2.shape[:2]
-
-    min_x =min(shape1[0],shape2[0])
-    min_y =min(shape1[1],shape2[1])
+    x1 = img.imread('%s/%s' % (opt.input_dir, opt.input_name1))
+    x2 = img.imread('%s/%s' % (opt.input_dir, opt.input_name2))
+    x_dim = min(x1.shape[0], x2.shape[0])
+    y_dim = min(x1.shape[1], x2.shape[1])
+    x1 = crop(x1, x_dim, y_dim)
+    x2 = crop(x2, x_dim, y_dim)
+    assert x1.shape == x2.shape
+    return np2torch(x1, opt), np2torch(x2, opt)
 
     startx_1 = min_x//2-(shape1[0]//2)
     starty_1 = min_y//2-(shape1[1]//2)
