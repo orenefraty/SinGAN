@@ -5,6 +5,7 @@ import numpy as np
 import torch.utils.data
 
 from SinGAN.training import *
+from SinGAN.interpolate_functions import *
 
 
 def generate_gif(Gs,Zs,reals,NoiseAmp,opt,alpha=0.1,beta=0.9,start_scale=2,fps=10):
@@ -70,7 +71,7 @@ def generate_gif(Gs,Zs,reals,NoiseAmp,opt,alpha=0.1,beta=0.9,start_scale=2,fps=1
     imageio.mimsave('%s/start_scale=%d/alpha=%f_beta=%f.gif' % (dir2save,start_scale,alpha,beta),images_cur,fps=fps)
     del images_cur
 
-def SinGAN_generate(Gs,Zs,reals,NoiseAmp,opt,style_index,in_s=None,scale_v=1,scale_h=1,n=0,gen_start_scale=0,num_samples=10):
+def SinGAN_generate(Gs,Zs,reals,NoiseAmp,opt,style_index,in_s=None,scale_v=1,scale_h=1,n=0,gen_start_scale=0,num_samples=1,mode='Style_Transfer'):
     if in_s is None:
         in_s = torch.full(reals[0].shape, 0, device=opt.device)
     images_cur = []
@@ -112,21 +113,28 @@ def SinGAN_generate(Gs,Zs,reals,NoiseAmp,opt,style_index,in_s=None,scale_v=1,sca
             # print(I_prev.shape)
 
             z_in = noise_amp*(z_curr)+I_prev
-            I_curr = G(z_in.detach(),I_prev,style_index)
 
-            if n == len(reals)-1:
-                if opt.mode == 'train':
-                    input_name = opt.input_name1[:-4] if style_index == 0 else opt.input_name2[:-4]
-                    dir2save = '%s/RandomSamples/%s/gen_start_scale=%d' % (opt.out, input_name, gen_start_scale)
-                else:
-                    dir2save = functions.generate_dir2save(opt, style_index)
-                try:
-                    os.makedirs(dir2save)
-                except OSError:
-                    pass
-                if (opt.mode != "harmonization") & (opt.mode != "editing") & (opt.mode != "SR") & (opt.mode != "paint2image"):
-                    plt.imsave('%s/%d.png' % (dir2save, i), functions.convert_image_np(I_curr.detach()), vmin=0,vmax=1)
-            images_cur.append(I_curr)
+            if mode!='Style_Transfer':
+                I_curr = G(z_in.detach(),I_prev,style_index)
+
+                if n == len(reals)-1:
+                    if opt.mode == 'train':
+                        input_name = opt.input_name1[:-4] if style_index == 0 else opt.input_name2[:-4]
+                        dir2save = '%s/RandomSamples/%s/gen_start_scale=%d' % (opt.out, input_name, gen_start_scale)
+                    else:
+                        dir2save = functions.generate_dir2save(opt, style_index)
+                    try:
+                        os.makedirs(dir2save)
+                    except OSError:
+                        pass
+                    if (opt.mode != "harmonization") & (opt.mode != "editing") & (opt.mode != "SR") & (opt.mode != "paint2image"):
+                        plt.imsave('%s/%d.png' % (dir2save, i), functions.convert_image_np(I_curr.detach()), vmin=0,vmax=1)
+                images_cur.append(I_curr)
+            else:
+                _interpolator = TwoStyleInterpolator(G)
+                _interpolated_style_parameters_list = _interpolator.run_interpolation(0, 1)
+                _interpolator.produce_interpolated_grid(_interpolated_style_parameters_list, z_in, I_prev, n)
+
         n+=1
     return I_curr.detach()
 
