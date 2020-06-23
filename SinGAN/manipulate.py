@@ -109,14 +109,12 @@ def SinGAN_generate(Gs,Zs,reals,NoiseAmp,opt,style_index,in_s=None,scale_v=1,sca
             if n < gen_start_scale:
                 z_curr = Z_opt
 
-            # print(z_curr.shape)
-            # print(I_prev.shape)
+            print(z_curr.shape)
+            print(I_prev.shape)
 
             z_in = noise_amp*(z_curr)+I_prev
-
+            I_curr = G(z_in.detach(),I_prev,style_index)
             if mode!='Style_Transfer':
-                I_curr = G(z_in.detach(),I_prev,style_index)
-
                 if n == len(reals)-1:
                     if opt.mode == 'train':
                         input_name = opt.input_name1[:-4] if style_index == 0 else opt.input_name2[:-4]
@@ -129,11 +127,11 @@ def SinGAN_generate(Gs,Zs,reals,NoiseAmp,opt,style_index,in_s=None,scale_v=1,sca
                         pass
                     if (opt.mode != "harmonization") & (opt.mode != "editing") & (opt.mode != "SR") & (opt.mode != "paint2image"):
                         plt.imsave('%s/%d.png' % (dir2save, i), functions.convert_image_np(I_curr.detach()), vmin=0,vmax=1)
-                images_cur.append(I_curr)
             else:
                 _interpolator = TwoStyleInterpolator(G)
                 _interpolated_style_parameters_list = _interpolator.run_interpolation(0, 1)
                 _interpolator.produce_interpolated_grid(_interpolated_style_parameters_list, z_in, I_prev, n)
+            images_cur.append(I_curr)
 
         n+=1
     return I_curr.detach()
