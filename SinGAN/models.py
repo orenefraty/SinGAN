@@ -40,7 +40,10 @@ class ConditionalInstanceNorm2d(torch.nn.Module):
                                             for _ in range(num_styles)])
 
     def forward(self, x, style_idx):
-        return self.norm2ds[style_idx](x)
+        output = torch.zeros(x.shape).to(x.device)
+        for i,alpha in enumerate(style_idx):
+            output += self.norm2ds[i](x) * alpha
+        return output
 
 def weights_init(m):
     classname = m.__class__.__name__

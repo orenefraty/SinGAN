@@ -102,9 +102,11 @@ def train_single_scale(netD,netG,reals1,reals2,Gs,Zs,in_s,NoiseAmp,opt,centers=N
             if style_idx == 0:
                 real = real1
                 reals = reals1
+                style_idx = [0,1]
             elif style_idx == 1:
                 real = real2
                 reals = reals2
+                style_idx = [1,0]
 
             if (Gs == []) & (opt.mode != 'SR_train'):
                 z_opt = functions.generate_noise([1,opt.nzx,opt.nzy], device=opt.device)
@@ -171,7 +173,7 @@ def train_single_scale(netD,netG,reals1,reals2,Gs,Zs,in_s,NoiseAmp,opt,centers=N
                 D_G_z = output.mean().item()
 
                 gradient_penalty = functions.calc_gradient_penalty(netD, real, fake, opt.lambda_grad, opt.device, style_idx)
-                gradient_penalty.backward()
+                gradient_penalty.backward(retain_graph=True)
 
                 errD = errD_real + errD_fake + gradient_penalty
                 optimizerD.step()

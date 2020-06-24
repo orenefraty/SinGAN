@@ -3,6 +3,7 @@ from __future__ import print_function
 import imageio
 import numpy as np
 import torch.utils.data
+from pathlib import Path
 
 from SinGAN.training import *
 
@@ -125,7 +126,9 @@ def SinGAN_generate(Gs,Zs,reals,NoiseAmp,opt,style_index,in_s=None,scale_v=1,sca
                 except OSError:
                     pass
                 if (opt.mode != "harmonization") & (opt.mode != "editing") & (opt.mode != "SR") & (opt.mode != "paint2image"):
-                    plt.imsave('%s/%d.png' % (dir2save, i), functions.convert_image_np(I_curr.detach()), vmin=0,vmax=1)
+                    style_dir =str(round(style_index[0],1)).replace('.','_')
+                    Path('%s/%s' % (dir2save,style_dir )).mkdir(parents=True, exist_ok=True)
+                    plt.imsave('%s/%s/%d.png' % (dir2save, style_dir,i), functions.convert_image_np(I_curr.detach()), vmin=0,vmax=1)
             images_cur.append(I_curr)
         n+=1
     return I_curr.detach()
