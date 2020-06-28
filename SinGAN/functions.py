@@ -303,7 +303,9 @@ def generate_dir2save(opt, style_index=None):
     elif opt.mode == 'editing':
         dir2save = '%s/Editing/%s/%s_out' % (opt.out, opt.input_name[:-4], opt.ref_name[:-4])
     elif opt.mode == 'paint2image':
-        dir2save = '%s/Paint2image/%s/%s_out' % (opt.out, opt.input_name[:-4], opt.ref_name[:-4])
+        input_name = opt.input_name1[:-4] if style_index == 0 else opt.input_name2[:-4]
+        dir2save = '%s/Paint2image/%s/%s_out' % (opt.out, input_name, opt.ref_name[:-4])
+        #dir2save = '%s/Paint2image/%s/%s_out' % (opt.out, opt.input_name[:-4], opt.ref_name[:-4])
         if opt.quantization_flag:
             dir2save = '%s_quantized' % dir2save
     return dir2save
