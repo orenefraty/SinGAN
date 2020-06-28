@@ -44,7 +44,7 @@ if __name__ == '__main__':
             #SinGAN_generate(Gs, Zs, reals1, NoiseAmp, opt, gen_start_scale=opt.gen_start_scale,style_index=[0,1])
             #SinGAN_generate(Gs, Zs, reals2, NoiseAmp, opt, gen_start_scale=opt.gen_start_scale,style_index=[1,0])
             for idx in [x * 0.1 for x in range(0, 11)]:
-                reals_chosen = reals if idx>0.5 else reals2
+                reals_chosen = reals1 if idx>0.5 else reals2
                 SinGAN_generate(Gs, Zs, reals_chosen, NoiseAmp, opt, gen_start_scale=opt.gen_start_scale,style_index=[idx,1-idx])
 
 
